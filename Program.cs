@@ -1,0 +1,357 @@
+﻿using System;
+
+using Instagram;
+
+using CliquedinAPI;
+using CliquedinAPI.Models.Conta;
+using CliquedinAPI.Models.Retorno;
+using CliquedinAPI.Controllers;
+
+using CliquedinSeguir.Models.Contas;
+using CliquedinSeguir.Controllers.Ua;
+
+using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.IO;
+using CliquedinSeguir.Helpers;
+
+namespace CliquedinSeguir
+{
+    class Program
+    {
+        static Cliquedin Plat { get; set; }
+        static string EmailCLiquedin { get; set; }
+        static string SenhaCliquedin { get; set; }
+        static string UserAgent { get; set; }
+        static async Task Main()
+        {
+            EmailCLiquedin = "cosme_junior16@hotmail.com";
+            SenhaCliquedin = "123456";
+            Plat = new(EmailCLiquedin, SenhaCliquedin);
+            Console.WriteLine("Realizando login na Cliquedin...");
+            var resd = await Plat.Login();
+            if (resd.Status == 1)
+            {
+                Console.WriteLine("Login realizado...");
+                while (true)
+                {
+                    try
+                    {
+                        UserAgent = uaController.GetUa();
+                        Console.WriteLine("UserAgent: " + UserAgent);
+                        Console.WriteLine("Buscando conta...");
+                        var conta = await Plat.GetAccount();
+                        BotAccounts Conta = new();
+                        Conta.conta = conta.Conta;
+                        bool logada = false;
+                        Console.WriteLine("Checando se possui cookie...");
+                        if (HaveCookie(conta.Conta.Username))
+                        {
+                            Console.WriteLine("Recuperando cookie anterior...");
+                            string[] data = GetSaveData(conta.Conta.Username.ToLower());
+                            Insta i = new(conta.Conta.Username.ToLower(), conta.Conta.Password, data[0], data[2], "http://gate.dc.smartproxy.com:20000/", "sp51276865", "20180102");
+                            //Insta i = new(conta.Conta.Username.ToLower(), conta.Conta.Password, data[0], data[2]);
+                            i.SetuserAgent(UserAgent);
+                            Conta.insta = i;
+                            logada = await Conta.IsLogged();
+                        }
+                        if (!logada)
+                        {
+                            Console.WriteLine("Realizando Login na conta...");
+                            Console.WriteLine($"Username: {conta.Conta.Username} | Password: {conta.Conta.Password}");
+                            Insta i = new(conta.Conta.Username.ToLower(), conta.Conta.Password, "http://gate.dc.smartproxy.com:20000/", "sp51276865", "20180102");
+                            //Insta i = new(conta.Conta.Username.ToLower(), conta.Conta.Password);
+                            Conta.insta = i;
+                            var login = await Conta.Login();
+                            if (login.Status == 1)
+                            {
+                                Console.WriteLine("Login realizado com sucesso...");
+                                logada = true;
+                            } else
+                            {
+                                Console.WriteLine("Erro ao logar...");
+                                Console.WriteLine(login.Response);
+                                await Task.Delay(TimeSpan.FromSeconds(15));
+                            }
+                        }
+                        if (logada)
+                        {
+                            Console.WriteLine("Buscando ID da conta...");
+                            var id = await Plat.GetAccountID(conta.Conta.Username);
+                            if (id.Status != 1)
+                            {
+                                Console.WriteLine("Não foi possivel localizar a conta na cliquedin...");
+                                Console.WriteLine("Buscando informações da conta...");
+                                var data = await Conta.GetDataFromPerfil();
+                                if (data.Status == 1)
+                                {
+                                    Console.WriteLine("Sucesso ao recuperar informações...");
+                                    Console.WriteLine("Registrando a conta na cliquedin...");
+                                    var cad = await Plat.RegisteAccount(conta.Conta.Username, data.Gender, data.Response);
+                                    if (cad)
+                                    {
+                                        Console.WriteLine("Sucesso ao cadastrar a conta...");
+                                        await Task.Delay(TimeSpan.FromSeconds(15));
+                                        id = await Plat.GetAccountID(conta.Conta.Username);
+                                        if (id.Status == 1)
+                                        {
+                                            Console.WriteLine("Rodando tarefas na conta...");
+                                            Conta.conta.ContaID = id.Response;
+                                            await RodarConta(Conta);
+                                        }
+                                        else
+                                        {
+                                            Console.WriteLine("Erro ao cadastrar a conta...");
+                                        }
+                                    } else
+                                    {
+                                        Console.WriteLine("Erro ao cadastrar a conta...");
+                                    }
+                                } else
+                                {
+                                    Console.Write(data.Response);
+                                    await Task.Delay(TimeSpan.FromSeconds(15));
+                                }
+                            } else
+                            {
+                                Console.WriteLine("Conta localizada...");
+                                Console.WriteLine("Rodando tarefas na conta...");
+                                Conta.conta.ContaID = id.Response;
+                                await RodarConta(Conta);
+                            }
+                        }
+                    }
+                    catch (Exception err)
+                    {
+                        Console.WriteLine("Erro ao rodar o bot: " + err.Message);
+                        await Task.Delay(TimeSpan.FromSeconds(30));
+                    }
+                    Console.WriteLine("Aguardando 1 minuto para mudar de conta...");
+                    await Task.Delay(TimeSpan.FromSeconds(60));
+                    Console.Clear();
+                }
+            } else
+            {
+                Console.WriteLine("Não foi possivel realizar login na cliquedin...");
+                await Task.Delay(TimeSpan.FromSeconds(999999));
+            }
+        }
+
+        static async Task RodarConta(BotAccounts conta)
+        {
+            SaveDate(conta.conta.Username.ToLower(), UserAgent, conta.insta.CookieString(), conta.insta.GetClaim());
+            try
+            {
+                Random rand = new();
+                int nTask = 0;
+                while (nTask < 90)
+                {
+                    Console.Clear();
+                    Console.WriteLine("Buscando tarefa para realizar...");
+                    var task = await Plat.GetTask(conta.conta.Username);
+                    if (task.Status != 1)
+                    {
+                        int check = 0;
+                        while(check < 3 && task.Status != 1)
+                        {
+                            await Task.Delay(TimeSpan.FromSeconds(25));
+                            check++;
+                            task = await Plat.GetTask(conta.conta.Username);
+                        }
+                    }
+                    if (task.Status == 1)
+                    {
+                        Console.WriteLine("Tarefa encontrada...");
+                        string target;
+                        string taskID;
+                        switch (task.Tipo)
+                        {
+                            case "seguir":
+                                if (task.Json.name.ToString().IndexOf("instagram.com") > -1)
+                                {
+                                    dynamic array = task.Json.name.ToString().Split("/");
+                                    target = array[array.Length - 1] == "" ? (string)array[array.Length - 2] : (string)array[array.Length - 1];
+                                }
+                                else
+                                    target = task.Json.name.ToString();
+                                Console.WriteLine($"Seguindo o perfil '{target}'...");
+                                taskID = task.Json.id.ToString();
+                                var seguir = await conta.FollowUser(target);
+                                if (seguir.Status == 1)
+                                {
+                                    Console.WriteLine("Sucesso ao seguir o perfil...");
+                                    Console.WriteLine("Confirmando a tarefa...");
+                                    var confirm = await Plat.ConfirmTask(taskID, conta.conta.Username);
+                                    if (confirm.Status == 1)
+                                        Console.WriteLine("Sucesso ao confirmar a tarefa...");
+                                    else
+                                        Console.WriteLine("Erro ao confirmar a tarefa...");
+                                    nTask++;
+                                } 
+                                else
+                                {
+                                    if (seguir.Status <= 2)
+                                    {
+                                        Console.WriteLine(seguir.Response);
+                                        Console.WriteLine("Pulando a tarefa...");
+                                        await Plat.JumpTask(taskID, conta.conta.Username);
+                                        await Plat.SendPrivateOrNotExistTask(taskID);
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine(seguir.Response);
+                                        await Task.Delay(TimeSpan.FromSeconds(20));
+                                        return;
+                                    }
+                                }
+                                break;
+                            case "curtir":
+                                if (task.Json.name.ToString().IndexOf("instagram.com") > -1)
+                                {
+                                    dynamic array = task.Json.name.ToString().Split("/");
+                                    target = array[array.Length - 1] == "" ? (string)array[array.Length - 2] : (string)array[array.Length - 1];
+                                }
+                                else
+                                    target = task.Json.name.ToString();
+                                Console.WriteLine($"Curtindo a publicação '{target}'...");
+                                taskID = task.Json.id.ToString();
+                                var curtir = await conta.LikeMediaShortCode(target);
+                                if (curtir.Status == 1)
+                                {
+                                    Console.WriteLine("Sucesso ao curtir a publicação...");
+                                    Console.WriteLine("Confirmando a tarefa...");
+                                    var confirm = await Plat.ConfirmTask(taskID, conta.conta.Username);
+                                    if (confirm.Status == 1)
+                                        Console.WriteLine("Sucesso ao confirmar a tarefa...");
+                                    else
+                                        Console.WriteLine("Erro ao confirmar a tarefa...");
+                                    nTask++;
+                                }
+                                else
+                                {
+                                    if (curtir.Status <= 2)
+                                    {
+                                        Console.WriteLine("Publicação não encontrada...");
+                                        await Plat.JumpTask(taskID, conta.conta.Username);
+                                        await Plat.SendPrivateOrNotExistTask(taskID);
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine(curtir.Response);
+                                        await Task.Delay(TimeSpan.FromSeconds(20));
+                                        return;
+                                    }
+                                }
+                                break;
+                            case "stories":
+                                if (task.Json.name.ToString().IndexOf("instagram.com") > -1)
+                                {
+                                    dynamic array = task.Json.name.ToString().Split("/");
+                                    target = array[array.Length - 1] == "" ? (string)array[array.Length - 2] : (string)array[array.Length - 1];
+                                }
+                                else
+                                    target = task.Json.name.ToString();
+                                Console.WriteLine($"Curtindo a publicação '{target}'...");
+                                taskID = task.Json.id.ToString();
+                                var stories = await conta.SeeStoryByUsername(target);
+                                if (stories.Status == 1)
+                                {
+                                    Console.WriteLine("Sucesso ao curtir a publicação...");
+                                    Console.WriteLine("Confirmando a tarefa...");
+                                    var confirm = await Plat.ConfirmTask(taskID, conta.conta.Username);
+                                    if (confirm.Status == 1)
+                                        Console.WriteLine("Sucesso ao confirmar a tarefa...");
+                                    else
+                                        Console.WriteLine("Erro ao confirmar a tarefa...");
+                                    nTask++;
+                                }
+                                else
+                                {
+                                    if (stories.Status <= 2)
+                                    {
+                                        Console.WriteLine("Publicação não encontrada...");
+                                        await Plat.JumpTask(taskID, conta.conta.Username);
+                                        await Plat.SendPrivateOrNotExistTask(taskID);
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine(stories.Response);
+                                        await Task.Delay(TimeSpan.FromSeconds(20));
+                                        return;
+                                    }
+                                }
+                                break;
+                            case "comentar":
+                                break;
+                            default:
+                                break;
+                        }
+                        int delay = rand.Next(600, 900);
+                        Console.WriteLine($"Aguardando {delay} segundos para continuar...");
+                        await Task.Delay(TimeSpan.FromSeconds(delay));
+                    }
+                    else
+                    {
+                        Console.WriteLine("Não foi popssivel localizar tarefa no momento...");
+                        int delay = rand.Next(150, 300);
+                        Console.WriteLine($"Aguardando {delay} segundos para continuar...");
+                        await Task.Delay(TimeSpan.FromSeconds(delay));
+                    }
+                }
+            } catch (Exception err)
+            {
+                Console.WriteLine("Erro ao realizar as tarefas...");
+                Console.WriteLine("Error: " + err.Message);
+                await Task.Delay(TimeSpan.FromSeconds(20));
+            }
+            return;
+        }
+
+        static string[] GetSaveData (string username)
+        {
+            string dir = Directory.GetCurrentDirectory();
+            try
+            {
+                if (!Directory.Exists($@"{dir}/Conta"))
+                    Directory.CreateDirectory($@"{dir}/Conta");
+            } catch { }
+            string[] retorno = new string[3];
+            if (File.Exists($@"{dir}/Conta/{username}.arka"))
+                retorno[0] = File.ReadAllText($@"{dir}/Conta/{username}.arka");
+            if (File.Exists($@"{dir}/Conta/{username}-ua.arka"))
+                retorno[1] = File.ReadAllText($@"{dir}/Conta/{username}-ua.arka");
+            if (File.Exists($@"{dir}/Conta/{username}-claim.arka"))
+                retorno[2] = File.ReadAllText($@"{dir}/Conta/{username}-claim.arka");
+            return retorno;
+        }
+
+        static void SaveDate (string username, string ua, string cookie, string claim)
+        {
+            string dir = Directory.GetCurrentDirectory();
+            try
+            {
+                if (!Directory.Exists($@"{dir}/Conta"))
+                    Directory.CreateDirectory($@"{dir}/Conta");
+            }
+            catch { }
+            if (File.Exists($@"{dir}/Conta/{username}.arka"))
+                File.Delete($@"{dir}/Conta/{username}.arka");
+            File.WriteAllText($@"{dir}/Conta/{username}.arka", cookie);
+            if (File.Exists($@"{dir}/Conta/{username}-ua.arka"))
+                File.Delete($@"{dir}/Conta/{username}-ua.arka");
+            File.WriteAllText($@"{dir}/Conta/{username}-ua.arka", ua);
+            if (File.Exists($@"{dir}/Conta/{username}-claim.arka"))
+                File.Delete($@"{dir}/Conta/{username}-claim.arka");
+            File.WriteAllText($@"{dir}/Conta/{username}-claim.arka", claim);
+        }
+
+        static bool HaveCookie(string username)
+        {
+            var dir = Directory.GetCurrentDirectory();
+            if (File.Exists($@"{dir}/Conta/{username}.arka") && File.Exists($@"{dir}/Conta/{username}-ua.arka") && File.Exists($@"{dir}/Conta/{username}-claim.arka"))
+                return true;
+            return false;
+        }
+
+    }
+}
