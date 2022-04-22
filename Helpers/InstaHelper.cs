@@ -18,6 +18,74 @@ namespace CliquedinSeguir.Helpers
 {
     public static class InstaHelper
     {
+        private static string[] _famosos = new string[]
+        {
+            "cristiano",
+            "alanzoka",
+            "nike",
+            "adidas",
+            "mcdonjuan",
+            "arianagrande",
+            "bbb",
+            "tvglobo",
+            "imaginedragons",
+            "luvadepedreiro",
+            "neymarjr",
+            "casimiro",
+            "nyviestephan",
+            "gabicattuzzo",
+            "fred",
+            "flamengo",
+            "vascodagama",
+            "corinthians",
+            "nickiminaj",
+            "instagram",
+            "kyliejenner",
+            "therock",
+            "selenagomez",
+            "kimkardashian",
+            "beyonce",
+            "justimbieber",
+            "kendalljenner",
+            "virat.kohli",
+            "anitta",
+            "tatawerneck",
+            "larissamanoela",
+            "brunamarquezine",
+            "maisa",
+            "gusttavolima",
+            "marcelotwelve",
+            "ronaldinho",
+        };
+
+        public async static Task<Retorno> RelaxSystem (this BotAccounts conta, int minutos)
+        {
+            int descanso = minutos / 3;
+            Retorno ret = new()
+            {
+                Status = -1,
+                Response = "Error"
+            };
+            try
+            {
+                Random rand = new();
+                string celebridade = _famosos[rand.Next(0, _famosos.Length - 1)];
+                for (int i = 0; i< 3; i++)
+                {
+                    _ = await conta.SeeStoryByUsername(celebridade);
+                    await Task.Delay(TimeSpan.FromMinutes(descanso));
+                    celebridade = _famosos[rand.Next(0, _famosos.Length - 1)];
+                }
+                ret.Status = 1;
+                ret.Response = "Sucesso";
+            } catch
+            {
+                ret.Status = -1;
+                ret.Response = "Error";
+            }
+            return ret;
+        }
+
         public async static Task<Retorno> FollowUser (this BotAccounts conta, string username)
         {
             Retorno ret = new()
@@ -82,6 +150,7 @@ namespace CliquedinSeguir.Helpers
                 Response = "Error",
                 Status = -1
             };
+            Console.WriteLine("Iniciando isstema de stories");
             var follow = await conta.insta.SeeStoryFromUsername(username);
             if (follow.Status == 1)
             {
