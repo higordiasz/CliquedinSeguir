@@ -225,14 +225,10 @@ namespace CliquedinSeguir
                                         if (seguir.Status == -3)
                                         {
                                             Console.WriteLine("Conta com bloqueio temporario...");
-                                            Console.WriteLine("Colocando para descansar por 30 minutos...");
-                                            await conta.RelaxSystem(30);
-                                            Console.WriteLine("Mudando o useragent...");
-                                            UserAgent = uaController.GetUa();
-                                            conta.insta.SetuserAgent(UserAgent);
-                                            Console.WriteLine("Novo useragent: " + UserAgent);
-                                            await Plat.JumpTask(taskID, conta.conta.Username);
-                                            await Plat.SendPrivateOrNotExistTask(taskID);
+                                            Console.WriteLine("Enviando para o servidor e mudando de conta...");
+                                            await Plat.SendBlockTemp(conta.conta.Username);
+                                            await Task.Delay(TimeSpan.FromSeconds(5));
+                                            return;
                                         }
                                         else
                                         {
@@ -279,14 +275,10 @@ namespace CliquedinSeguir
                                         if (curtir.Status == -3)
                                         {
                                             Console.WriteLine("Conta com bloqueio temporario...");
-                                            Console.WriteLine("Colocando para descansar por 30 minutos...");
-                                            await conta.RelaxSystem(30);
-                                            Console.WriteLine("Mudando o useragent...");
-                                            UserAgent = uaController.GetUa();
-                                            conta.insta.SetuserAgent(UserAgent);
-                                            Console.WriteLine("Novo useragent: " + UserAgent);
-                                            await Plat.JumpTask(taskID, conta.conta.Username);
-                                            await Plat.SendPrivateOrNotExistTask(taskID);
+                                            Console.WriteLine("Enviando para o servidor e mudando de conta...");
+                                            await Plat.SendBlockTemp(conta.conta.Username);
+                                            await Task.Delay(TimeSpan.FromSeconds(5));
+                                            return;
                                         }
                                         else
                                         {
@@ -333,14 +325,10 @@ namespace CliquedinSeguir
                                         if (stories.Status == -3)
                                         {
                                             Console.WriteLine("Conta com bloqueio temporario...");
-                                            Console.WriteLine("Colocando para descansar por 30 minutos...");
-                                            await conta.RelaxSystem(30);
-                                            Console.WriteLine("Mudando o useragent...");
-                                            UserAgent = uaController.GetUa();
-                                            conta.insta.SetuserAgent(UserAgent);
-                                            Console.WriteLine("Novo useragent: " + UserAgent);
-                                            await Plat.JumpTask(taskID, conta.conta.Username);
-                                            await Plat.SendPrivateOrNotExistTask(taskID);
+                                            Console.WriteLine("Enviando para o servidor e mudando de conta...");
+                                            await Plat.SendBlockTemp(conta.conta.Username);
+                                            await Task.Delay(TimeSpan.FromSeconds(5));
+                                            return;
                                         }
                                         else
                                         {
@@ -359,6 +347,64 @@ namespace CliquedinSeguir
                                 }
                                 break;
                             case "comentar":
+                                if (task.Json.name.ToString().IndexOf("instagram.com") > -1)
+                                {
+                                    dynamic array = task.Json.name.ToString().Split("/");
+                                    target = array[array.Length - 1] == "" ? (string)array[array.Length - 2] : (string)array[array.Length - 1];
+                                }
+                                else
+                                    target = task.Json.name.ToString();
+                                string[] comentarios;
+                                try
+                                {
+                                    comentarios = task.Json.comments.ToObject<string[]>(); ;
+                                }
+                                catch
+                                {
+                                    comentarios = new string[] { "Top !!", "Nice !!", "Muito Bom !!!" };
+                                }
+                                int position = rand.Next(0, comentarios.Length);
+                                Console.WriteLine($"Seguindo o perfil '{target}'...");
+                                taskID = task.Json.id.ToString();
+                                var comentar = await conta.CommentMediaShotcode(target, comentarios[position]);
+                                if (comentar.Status == 1)
+                                {
+                                    Console.WriteLine("Sucesso ao seguir o perfil...");
+                                    Console.WriteLine("Confirmando a tarefa...");
+                                    var confirm = await Plat.ConfirmTask(taskID, conta.conta.Username);
+                                    if (confirm.Status == 1)
+                                        Console.WriteLine("Sucesso ao confirmar a tarefa...");
+                                    else
+                                        Console.WriteLine("Erro ao confirmar a tarefa...");
+                                    nTask++;
+                                }
+                                else
+                                {
+                                    if (comentar.Status <= 2)
+                                    {
+                                        if (comentar.Status == -3)
+                                        {
+                                            Console.WriteLine("Conta com bloqueio temporario...");
+                                            Console.WriteLine("Enviando para o servidor e mudando de conta...");
+                                            await Plat.SendBlockTemp(conta.conta.Username);
+                                            await Task.Delay(TimeSpan.FromSeconds(5));
+                                            return;
+                                        }
+                                        else
+                                        {
+                                            Console.WriteLine(comentar.Response);
+                                            Console.WriteLine("Pulando a tarefa...");
+                                            await Plat.JumpTask(taskID, conta.conta.Username);
+                                            await Plat.SendPrivateOrNotExistTask(taskID);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine(comentar.Response);
+                                        await Task.Delay(TimeSpan.FromSeconds(20));
+                                        return;
+                                    }
+                                }
                                 break;
                             default:
                                 break;

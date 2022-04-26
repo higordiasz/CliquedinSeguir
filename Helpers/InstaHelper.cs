@@ -143,6 +143,35 @@ namespace CliquedinSeguir.Helpers
             }
         }
 
+        public async static Task<Retorno> CommentMediaShotcode(this BotAccounts conta, string shortcode, string comment)
+        {
+            Retorno ret = new()
+            {
+                Response = "Error",
+                Status = -1
+            };
+            var follow = await conta.insta.CommentMediaByShortCode(shortcode, comment);
+            if (follow.Status == 1)
+            {
+                ret.Status = 1;
+                ret.Response = "Sucesso ao comentar a publicação";
+                return ret;
+            }
+            else
+            {
+                if (follow.Status == -2)
+                {
+                    return await conta.CheckChallenge();
+                }
+                else
+                {
+                    ret.Status = follow.Status;
+                    ret.Response = follow.Response;
+                    return ret;
+                }
+            }
+        }
+
         public async static Task<Retorno> SeeStoryByUsername (this BotAccounts conta, string username)
         {
             Retorno ret = new()
