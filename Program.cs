@@ -3,8 +3,6 @@
 using Instagram;
 
 using CliquedinAPI;
-using CliquedinAPI.Models.Conta;
-using CliquedinAPI.Models.Retorno;
 using CliquedinAPI.Controllers;
 
 using CliquedinSeguir.Models.Contas;
@@ -15,7 +13,6 @@ using CliquedinSeguir.Models.Proxy;
 using CliquedinSeguir.Helpers.Proxy;
 
 using System.Threading.Tasks;
-using System.Collections.Generic;
 using System.IO;
 using CliquedinSeguir.Helpers;
 
@@ -30,7 +27,7 @@ namespace CliquedinSeguir
         static Proxy proxy { get; set; }
         static async Task Main()
         {
-            if(!await LicenseController.License())
+            if (!await LicenseController.License())
             {
                 Console.WriteLine("Licença de uso expirada.");
                 await Task.Delay(TimeSpan.FromHours(100));
@@ -48,49 +45,38 @@ namespace CliquedinSeguir
                 while (true)
                 {
                     try
+                    {
+                        UserAgent = uaController.GetUa();
+                        Console.WriteLine("UserAgent: " + UserAgent);
+                        Console.WriteLine("Buscando conta...");
+                        var conta = await Plat.GetAccount();
+                        BotAccounts Conta = new();
+                        Conta.conta = conta.Conta;
+                        bool logada = false;
+                        if (String.IsNullOrEmpty(Conta.conta.Username))
                         {
-                            UserAgent = uaController.GetUa();
-                            Console.WriteLine("UserAgent: " + UserAgent);
-                            Console.WriteLine("Buscando conta...");
-                            var conta = await Plat.GetAccount();
-                            BotAccounts Conta = new();
-                            Conta.conta = conta.Conta;
-                            bool logada = false;
-                            if (String.IsNullOrEmpty(Conta.conta.Username))
+                            Console.WriteLine("Não possui contas no momento...");
+                            Console.WriteLine("Aguardando 5 minutos para tentar novamente...");
+                            await Task.Delay(TimeSpan.FromMinutes(5));
+                        }
+                        else
+                        {
+                            Console.WriteLine("Checando se possui cookie...");
+                            try
                             {
-                                Console.WriteLine("Não possui contas no momento...");
-                                Console.WriteLine("Aguardando 5 minutos para tentar novamente...");
-                                await Task.Delay(TimeSpan.FromMinutes(5));
+                                proxy = ProxyHelper.LoadProxyFromCliquedin(Plat);
                             }
-                            else
+                            catch
                             {
-                                Console.WriteLine("Checando se possui cookie...");
-                                if (HaveCookie(conta.Conta.Username))
+                                Console.WriteLine("Erro ao puxar proxy...");
+                            }
+                            if (HaveCookie(conta.Conta.Username))
+                            {
+                                Console.WriteLine("Recuperando cookie anterior...");
+                                string[] data = GetSaveData(conta.Conta.Username.ToLower());
+                                if (proxy == null)
                                 {
-                                    Console.WriteLine("Recuperando cookie anterior...");
-                                    string[] data = GetSaveData(conta.Conta.Username.ToLower());
-                                    Insta i = new(conta.Conta.Username.ToLower(), conta.Conta.Password, data[0], data[2], "http://gate.dc.smartproxy.com:20000/", "sp51276865", "20180102");
-                                    //Insta i = new(conta.Conta.Username.ToLower(), conta.Conta.Password, data[0], data[2]);
-                                    bool checkUserAgent = true;
-                                    while (checkUserAgent)
-                                    {
-                                        try
-                                        {
-                                            i.SetuserAgent(UserAgent);
-                                            checkUserAgent = false;
-                                        } catch {
-                                            UserAgent = uaController.GetUa();
-                                        }
-                                    }
-                                    Conta.insta = i;
-                                    logada = await Conta.IsLogged();
-                                }
-                                if (!logada)
-                                {
-                                    Console.WriteLine("Realizando Login na conta...");
-                                    Console.WriteLine($"Username: {conta.Conta.Username} | Password: {conta.Conta.Password}");
-                                    Insta i = new(conta.Conta.Username.ToLower(), conta.Conta.Password, "http://gate.dc.smartproxy.com:20000/", "sp51276865", "20180102");
-                                    //Insta i = new(conta.Conta.Username.ToLower(), conta.Conta.Password);
+                                    Insta i = new(conta.Conta.Username.ToLower(), conta.Conta.Password, data[0], data[1]);
                                     bool checkUserAgent = true;
                                     while (checkUserAgent)
                                     {
@@ -105,48 +91,161 @@ namespace CliquedinSeguir
                                         }
                                     }
                                     Conta.insta = i;
-                                    var login = await Conta.Login();
-                                    if (login.Status == 1)
+                                    logada = await Conta.IsLogged();
+                                }
+                                else
+                                {
+                                    Insta i = new(conta.Conta.Username.ToLower(), conta.Conta.Password, data[0], data[1], $"http://{proxy.IP}:{proxy.Port}/", proxy.User, proxy.Pass);
+                                    bool checkUserAgent = true;
+                                    while (checkUserAgent)
                                     {
-                                        Console.WriteLine("Login realizado com sucesso...");
-                                        logada = true;
+                                        try
+                                        {
+                                            i.SetuserAgent(UserAgent);
+                                            checkUserAgent = false;
+                                        }
+                                        catch
+                                        {
+                                            UserAgent = uaController.GetUa();
+                                        }
+                                    }
+                                    Conta.insta = i;
+                                    logada = await Conta.IsLogged();
+                                }
+                            }
+                            if (!logada)
+                            {
+                                bool leave = false;
+                                while (!leave)
+                                {
+                                    Console.WriteLine("Realizando Login na conta...");
+                                    Console.WriteLine($"Username: {conta.Conta.Username} | Password: {conta.Conta.Password}");
+                                    if (proxy == null)
+                                    {
+                                        Insta i = new(conta.Conta.Username.ToLower(), conta.Conta.Password);
+                                        bool checkUserAgent = true;
+                                        while (checkUserAgent)
+                                        {
+                                            try
+                                            {
+                                                i.SetuserAgent(UserAgent);
+                                                checkUserAgent = false;
+                                            }
+                                            catch
+                                            {
+                                                UserAgent = uaController.GetUa();
+                                            }
+                                        }
+                                        Conta.insta = i;
+                                        var login = await Conta.Login(Plat);
+                                        if (login.Status == 1)
+                                        {
+                                            Console.WriteLine("Login realizado com sucesso...");
+                                            logada = true;
+                                            leave = true;
+                                        }
+                                        else
+                                        {
+                                            if (login.Status == -995)
+                                            {
+                                                Console.WriteLine("Erro ao logar...");
+                                                Console.WriteLine(login.Response);
+                                                Console.WriteLine("Buscando novo proxy...");
+                                                await Task.Delay(TimeSpan.FromSeconds(25));
+                                                try
+                                                {
+                                                    proxy = ProxyHelper.LoadProxyFromCliquedin(Plat);
+                                                }
+                                                catch
+                                                {
+                                                    Console.WriteLine("Erro ao puxar proxy...");
+                                                }
+                                            }
+                                            else
+                                            {
+                                                Console.WriteLine("Erro ao logar...");
+                                                Console.WriteLine(login.Response);
+                                                await Task.Delay(TimeSpan.FromSeconds(15));
+                                                leave = true;
+                                            }
+                                        }
                                     }
                                     else
                                     {
-                                        Console.WriteLine("Erro ao logar...");
-                                        Console.WriteLine(login.Response);
-                                        await Task.Delay(TimeSpan.FromSeconds(15));
+                                        Insta i = new(conta.Conta.Username.ToLower(), conta.Conta.Password, $"http://{proxy.IP}:{proxy.Port}/", proxy.User, proxy.Pass);
+                                        bool checkUserAgent = true;
+                                        while (checkUserAgent)
+                                        {
+                                            try
+                                            {
+                                                i.SetuserAgent(UserAgent);
+                                                checkUserAgent = false;
+                                            }
+                                            catch
+                                            {
+                                                UserAgent = uaController.GetUa();
+                                            }
+                                        }
+                                        Conta.insta = i;
+                                        var login = await Conta.Login(Plat);
+                                        if (login.Status == 1)
+                                        {
+                                            Console.WriteLine("Login realizado com sucesso...");
+                                            logada = true;
+                                            leave = true;
+                                        }
+                                        else
+                                        {
+                                            if (login.Status == -995)
+                                            {
+                                                Console.WriteLine("Erro ao logar...");
+                                                Console.WriteLine(login.Response);
+                                                Console.WriteLine("Buscando novo proxy...");
+                                                await Task.Delay(TimeSpan.FromSeconds(25));
+                                                try
+                                                {
+                                                    proxy = ProxyHelper.LoadProxyFromCliquedin(Plat);
+                                                }
+                                                catch
+                                                {
+                                                    Console.WriteLine("Erro ao puxar proxy...");
+                                                }
+                                            }
+                                            else
+                                            {
+                                                Console.WriteLine("Erro ao logar...");
+                                                Console.WriteLine(login.Response);
+                                                await Task.Delay(TimeSpan.FromSeconds(15));
+                                                leave = true;
+                                            }
+                                        }
                                     }
                                 }
-                                if (logada)
+                            }
+                            if (logada)
+                            {
+                                Console.WriteLine("Buscando ID da conta...");
+                                var id = await Plat.GetAccountID(conta.Conta.Username);
+                                if (id.Status != 1)
                                 {
-                                    Console.WriteLine("Buscando ID da conta...");
-                                    var id = await Plat.GetAccountID(conta.Conta.Username);
-                                    if (id.Status != 1)
+                                    Console.WriteLine("Não foi possivel localizar a conta na cliquedin...");
+                                    Console.WriteLine("Buscando informações da conta...");
+                                    var data = await Conta.GetDataFromPerfil(Plat);
+                                    if (data.Status == 1)
                                     {
-                                        Console.WriteLine("Não foi possivel localizar a conta na cliquedin...");
-                                        Console.WriteLine("Buscando informações da conta...");
-                                        var data = await Conta.GetDataFromPerfil();
-                                        if (data.Status == 1)
+                                        Console.WriteLine("Sucesso ao recuperar informações...");
+                                        Console.WriteLine("Registrando a conta na cliquedin...");
+                                        var cad = await Plat.RegisteAccount(conta.Conta.Username, data.Gender, data.Response);
+                                        if (cad)
                                         {
-                                            Console.WriteLine("Sucesso ao recuperar informações...");
-                                            Console.WriteLine("Registrando a conta na cliquedin...");
-                                            var cad = await Plat.RegisteAccount(conta.Conta.Username, data.Gender, data.Response);
-                                            if (cad)
+                                            Console.WriteLine("Sucesso ao cadastrar a conta...");
+                                            await Task.Delay(TimeSpan.FromSeconds(15));
+                                            id = await Plat.GetAccountID(conta.Conta.Username);
+                                            if (id.Status == 1)
                                             {
-                                                Console.WriteLine("Sucesso ao cadastrar a conta...");
-                                                await Task.Delay(TimeSpan.FromSeconds(15));
-                                                id = await Plat.GetAccountID(conta.Conta.Username);
-                                                if (id.Status == 1)
-                                                {
-                                                    Console.WriteLine("Rodando tarefas na conta...");
-                                                    Conta.conta.ContaID = Conta.conta.Username;
-                                                    await RodarConta(Conta);
-                                                }
-                                                else
-                                                {
-                                                    Console.WriteLine("Erro ao cadastrar a conta...");
-                                                }
+                                                Console.WriteLine("Rodando tarefas na conta...");
+                                                Conta.conta.ContaID = Conta.conta.Username;
+                                                await RodarConta(Conta);
                                             }
                                             else
                                             {
@@ -155,33 +254,39 @@ namespace CliquedinSeguir
                                         }
                                         else
                                         {
-                                            Console.Write(data.Response);
-                                            await Task.Delay(TimeSpan.FromSeconds(15));
+                                            Console.WriteLine("Erro ao cadastrar a conta...");
                                         }
                                     }
                                     else
                                     {
-                                        Console.WriteLine("Conta localizada...");
-                                        Console.WriteLine("Rodando tarefas na conta...");
-                                        Conta.conta.ContaID = Conta.conta.Username;
-                                        await RodarConta(Conta);
+                                        Console.Write(data.Response);
+                                        await Task.Delay(TimeSpan.FromSeconds(15));
                                     }
+                                }
+                                else
+                                {
+                                    Console.WriteLine("Conta localizada...");
+                                    Console.WriteLine("Rodando tarefas na conta...");
+                                    Conta.conta.ContaID = Conta.conta.Username;
+                                    await RodarConta(Conta);
                                 }
                             }
                         }
-                        catch (Exception err)
-                        {
-                            Console.WriteLine(err.Message);
-                            Console.WriteLine(err.StackTrace);
-                            Console.WriteLine(err.Source);
-                            Console.WriteLine("Erro ao rodar o bot: " + err.Message);
-                            await Task.Delay(TimeSpan.FromSeconds(30));
-                        }
+                    }
+                    catch (Exception err)
+                    {
+                        Console.WriteLine(err.Message);
+                        Console.WriteLine(err.StackTrace);
+                        Console.WriteLine(err.Source);
+                        Console.WriteLine("Erro ao rodar o bot: " + err.Message);
+                        await Task.Delay(TimeSpan.FromSeconds(30));
+                    }
                     Console.WriteLine("Aguardando 1 minuto para mudar de conta...");
                     await Task.Delay(TimeSpan.FromSeconds(60));
                     Console.Clear();
                 }
-            } else
+            }
+            else
             {
                 Console.WriteLine("Não foi possivel realizar login na cliquedin...");
                 await Task.Delay(TimeSpan.FromSeconds(999999));
@@ -190,20 +295,7 @@ namespace CliquedinSeguir
 
         static async Task RodarConta(BotAccounts conta)
         {
-            try
-            {
-                proxy = ProxyHelper.LoadProxyFromFile();
-                //proxy = ProxyHelper.LoadProxyFromCliquedin(Plat);
-                if (proxy == null)
-                {
-                    proxy = new("gate.dc.smartproxy.com", "20000", "sp51276865", "20180102");
-                }
-            } catch
-            {
-                proxy = new("gate.dc.smartproxy.com", "20000", "sp51276865", "20180102");
-            }
             SaveDate(conta.conta.Username.ToLower(), UserAgent, conta.insta.CookieString(), conta.insta.GetClaim());
-            conta.insta.NewProxy($"http://{proxy.IP}:{proxy.Port}/", proxy.User, proxy.Pass);
             try
             {
                 Random rand = new();
@@ -211,10 +303,10 @@ namespace CliquedinSeguir
                 while (nTask < 90)
                 {
                     Console.Clear();
-                    if (nTask > 0 && nTask %10 == 0)
+                    if (nTask > 0 && nTask % 10 == 0)
                     {
                         Console.WriteLine("Assistindo 3minutos de stories de famosos...");
-                        _ = await conta.RelaxSystem(3);
+                        _ = await conta.RelaxSystem(3, Plat);
                         Console.WriteLine("Continuando a realizar as tarefas...");
                     }
                     Console.WriteLine("Buscando tarefa para realizar...");
@@ -222,7 +314,7 @@ namespace CliquedinSeguir
                     if (task.Status != 1)
                     {
                         int check = 0;
-                        while(check < 3 && task.Status != 1)
+                        while (check < 3 && task.Status != 1)
                         {
                             await Task.Delay(TimeSpan.FromSeconds(25));
                             check++;
@@ -246,7 +338,7 @@ namespace CliquedinSeguir
                                     target = task.Json.name.ToString();
                                 Console.WriteLine($"Seguindo o perfil '{target}'...");
                                 taskID = task.Json.id.ToString();
-                                var seguir = await conta.FollowUser(target);
+                                var seguir = await conta.FollowUser(target, Plat);
                                 if (seguir.Status == 1)
                                 {
                                     Console.WriteLine("Sucesso ao seguir o perfil...");
@@ -257,7 +349,7 @@ namespace CliquedinSeguir
                                     else
                                         Console.WriteLine("Erro ao confirmar a tarefa...");
                                     nTask++;
-                                } 
+                                }
                                 else
                                 {
                                     if (seguir.Status <= 2)
@@ -307,7 +399,7 @@ namespace CliquedinSeguir
                                     target = task.Json.name.ToString();
                                 Console.WriteLine($"Curtindo a publicação '{target}'...");
                                 taskID = task.Json.id.ToString();
-                                var curtir = await conta.LikeMediaShortCode(target);
+                                var curtir = await conta.LikeMediaShortCode(target, Plat);
                                 if (curtir.Status == 1)
                                 {
                                     Console.WriteLine("Sucesso ao curtir a publicação...");
@@ -368,7 +460,7 @@ namespace CliquedinSeguir
                                     target = task.Json.name.ToString();
                                 Console.WriteLine($"Assistindo stories do perfil '{target}'...");
                                 taskID = task.Json.id.ToString();
-                                var stories = await conta.SeeStoryByUsername(target);
+                                var stories = await conta.SeeStoryByUsername(target, Plat);
                                 if (stories.Status == 1)
                                 {
                                     Console.WriteLine("Sucesso ao assistir stories...");
@@ -428,7 +520,7 @@ namespace CliquedinSeguir
                                 int position = rand.Next(0, comentarios.Length);
                                 Console.WriteLine($"Seguindo o perfil '{target}'...");
                                 taskID = task.Json.id.ToString();
-                                var comentar = await conta.CommentMediaShotcode(target, comentarios[position]);
+                                var comentar = await conta.CommentMediaShotcode(target, comentarios[position], Plat);
                                 if (comentar.Status == 1)
                                 {
                                     Console.WriteLine("Sucesso ao seguir o perfil...");
@@ -483,7 +575,8 @@ namespace CliquedinSeguir
                         await Task.Delay(TimeSpan.FromSeconds(delay));
                     }
                 }
-            } catch (Exception err)
+            }
+            catch (Exception err)
             {
                 Console.WriteLine("Erro ao realizar as tarefas...");
                 Console.WriteLine("Error: " + err.Message);
@@ -492,14 +585,15 @@ namespace CliquedinSeguir
             return;
         }
 
-        static string[] GetSaveData (string username)
+        static string[] GetSaveData(string username)
         {
             string dir = Directory.GetCurrentDirectory();
             try
             {
                 if (!Directory.Exists($@"{dir}/Conta"))
                     Directory.CreateDirectory($@"{dir}/Conta");
-            } catch { }
+            }
+            catch { }
             string[] retorno = new string[3];
             if (File.Exists($@"{dir}/Conta/{username}.arka"))
                 retorno[0] = File.ReadAllText($@"{dir}/Conta/{username}.arka");
@@ -510,7 +604,7 @@ namespace CliquedinSeguir
             return retorno;
         }
 
-        static void SaveDate (string username, string ua, string cookie, string claim)
+        static void SaveDate(string username, string ua, string cookie, string claim)
         {
             string dir = Directory.GetCurrentDirectory();
             try
