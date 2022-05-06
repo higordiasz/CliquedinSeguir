@@ -435,6 +435,19 @@ namespace CliquedinSeguir.Helpers
             }
         }
 
+        public static async Task<string> LastPostDate(this BotAccounts conta, Cliquedin cliquedin)
+        {
+            var last = await conta.insta.GetLastMediaByUsername(conta.conta.Username.ToLower());
+            if (last.Status == 1)
+            {
+                return last.Response;
+            }
+            else
+            {
+                return DateTime.Now.ToString("yyyy/MM/dd");
+            }
+        }
+
         static private string GetInstagramCodeFromEmail(string IMAP_IP, int IMAP_PORT, bool SSL, string EMAIL, string PASSWORD)
         {
             ImapClient imap = new ImapClient(IMAP_IP, IMAP_PORT, SSL);
