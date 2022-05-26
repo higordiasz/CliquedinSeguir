@@ -88,7 +88,7 @@ namespace CliquedinSeguir.Helpers
             return ret;
         }
 
-        public async static Task<Retorno> FollowUser (this BotAccounts conta, string username, Cliquedin cliquedin)
+        public async static Task<Retorno> FollowUser (this BotAccounts conta, string username, Cliquedin cliquedin, bool fisrt = true)
         {
             Retorno ret = new()
             {
@@ -109,9 +109,25 @@ namespace CliquedinSeguir.Helpers
                     return await conta.CheckChallenge(cliquedin);
                 } else
                 {
-                    ret.Status = follow.Status;
-                    ret.Response = follow.Response;
-                    return ret;
+                    if (follow.Status == -1)
+                    {
+                        if (fisrt)
+                        {
+                            return await conta.FollowUser(username, cliquedin, false);
+                        }
+                        else
+                        {
+                            ret.Status = follow.Status;
+                            ret.Response = follow.Response;
+                            return ret;
+                        }
+                    }
+                    else
+                    {
+                        ret.Status = follow.Status;
+                        ret.Response = follow.Response;
+                        return ret;
+                    }
                 }
             }
         }
