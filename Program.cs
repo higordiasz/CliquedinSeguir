@@ -84,8 +84,8 @@ namespace CliquedinSeguir
                                 string[] data = GetSaveData(conta.Conta.Username.ToLower());
                                 if (proxy == null)
                                 {
-                                    //Insta i = new(conta.Conta.Username.ToLower(), conta.Conta.Password, data[0], data[1]);
-                                    Insta i = new(conta.Conta.Username.ToLower(), conta.Conta.Password, $"http://gate.dc.smartproxy.com:20000/", "sp51276865", "20180102");
+                                    Insta i = new(conta.Conta.Username.ToLower(), conta.Conta.Password, data[0], data[1]);
+                                    //Insta i = new(conta.Conta.Username.ToLower(), conta.Conta.Password, $"http://gate.dc.smartproxy.com:20000/", "sp51276865", "20180102");
                                     bool checkUserAgent = true;
                                     while (checkUserAgent)
                                     {
@@ -104,8 +104,8 @@ namespace CliquedinSeguir
                                 }
                                 else
                                 {
-                                    //Insta i = new(conta.Conta.Username.ToLower(), conta.Conta.Password, data[0], data[1], $"http://{proxy.IP}:{proxy.Port}/", proxy.User, proxy.Pass);
-                                    Insta i = new(conta.Conta.Username.ToLower(), conta.Conta.Password, $"http://gate.dc.smartproxy.com:20000/", "sp51276865", "20180102");
+                                    Insta i = new(conta.Conta.Username.ToLower(), conta.Conta.Password, data[0], data[1], $"http://{proxy.IP}:{proxy.Port}/", proxy.User, proxy.Pass);
+                                    //Insta i = new(conta.Conta.Username.ToLower(), conta.Conta.Password, $"http://gate.dc.smartproxy.com:20000/", "sp51276865", "20180102");
                                     bool checkUserAgent = true;
                                     while (checkUserAgent)
                                     {
@@ -182,8 +182,8 @@ namespace CliquedinSeguir
                                     }
                                     else
                                     {
-                                        //Insta i = new(conta.Conta.Username.ToLower(), conta.Conta.Password, $"http://{proxy.IP}:{proxy.Port}/", proxy.User, proxy.Pass);
-                                        Insta i = new(conta.Conta.Username.ToLower(), conta.Conta.Password, $"http://gate.dc.smartproxy.com:20000/", "sp51276865", "20180102");
+                                        Insta i = new(conta.Conta.Username.ToLower(), conta.Conta.Password, $"http://{proxy.IP}:{proxy.Port}/", proxy.User, proxy.Pass);
+                                        //Insta i = new(conta.Conta.Username.ToLower(), conta.Conta.Password, $"http://gate.dc.smartproxy.com:20000/", "sp51276865", "20180102");
                                         bool checkUserAgent = true;
                                         while (checkUserAgent)
                                         {
@@ -395,8 +395,8 @@ namespace CliquedinSeguir
                                             {
                                                 Console.WriteLine(seguir.Response);
                                                 Console.WriteLine("Tentando relogar na conta ...");
-                                                //conta.insta = new(conta.conta.Username.ToLower(), conta.conta.Password, $"http://{proxy.IP}:{proxy.Port}/", proxy.User, proxy.Pass);
-                                                conta.insta = new(conta.conta.Username.ToLower(), conta.conta.Password, $"http://gate.dc.smartproxy.com:20000/", "sp51276865", "20180102");
+                                                conta.insta = new(conta.conta.Username.ToLower(), conta.conta.Password, $"http://{proxy.IP}:{proxy.Port}/", proxy.User, proxy.Pass);
+                                                //conta.insta = new(conta.conta.Username.ToLower(), conta.conta.Password, $"http://gate.dc.smartproxy.com:20000/", "sp51276865", "20180102");
                                                 var login = await conta.Login(Plat);
                                                 if (login.Status == 1)
                                                 {
@@ -409,6 +409,7 @@ namespace CliquedinSeguir
                                                     Console.WriteLine("Não foi possivel realizar o login na conta...");
                                                     Console.WriteLine(login.Status);
                                                     await Task.Delay(TimeSpan.FromSeconds(3));
+                                                    DeleteDate(conta.conta.Username.ToLower());
                                                     return;
                                                 }
                                             }
@@ -426,12 +427,14 @@ namespace CliquedinSeguir
                                             await Plat.JumpTask(taskID, conta.conta.Username);
                                             await Task.Delay(TimeSpan.FromSeconds(3));
                                             await Plat.SendBlockTemp(conta.conta.Username);
+                                            DeleteDate(conta.conta.Username.ToLower());
                                             return;
                                         }
                                         else
                                         {
                                             Console.WriteLine(seguir.Response);
                                             await Task.Delay(TimeSpan.FromSeconds(20));
+                                            DeleteDate(conta.conta.Username.ToLower());
                                             return;
                                         }
                                     }
@@ -477,8 +480,8 @@ namespace CliquedinSeguir
                                             {
                                                 Console.WriteLine(curtir.Response);
                                                 Console.WriteLine("Tentando relogar na conta ...");
-                                                //conta.insta = new(conta.conta.Username.ToLower(), conta.conta.Password, $"http://{proxy.IP}:{proxy.Port}/", proxy.User, proxy.Pass);
-                                                conta.insta = new(conta.conta.Username.ToLower(), conta.conta.Password, $"http://gate.dc.smartproxy.com:20000/", "sp51276865", "20180102");
+                                                conta.insta = new(conta.conta.Username.ToLower(), conta.conta.Password, $"http://{proxy.IP}:{proxy.Port}/", proxy.User, proxy.Pass);
+                                                //conta.insta = new(conta.conta.Username.ToLower(), conta.conta.Password, $"http://gate.dc.smartproxy.com:20000/", "sp51276865", "20180102");
                                                 var login = await conta.Login(Plat);
                                                 if (login.Status == 1)
                                                 {
@@ -491,6 +494,7 @@ namespace CliquedinSeguir
                                                     Console.WriteLine("Não foi possivel realizar o login na conta...");
                                                     Console.WriteLine(login.Status);
                                                     await Task.Delay(TimeSpan.FromSeconds(3));
+                                                    DeleteDate(conta.conta.Username.ToLower());
                                                     return;
                                                 }
                                             }
@@ -504,12 +508,14 @@ namespace CliquedinSeguir
                                             await Plat.JumpTask(taskID, conta.conta.Username);
                                             await Task.Delay(TimeSpan.FromSeconds(3));
                                             await Plat.SendBlockTemp(conta.conta.Username);
+                                            DeleteDate(conta.conta.Username.ToLower());
                                             return;
                                         }
                                         else
                                         {
                                             Console.WriteLine(curtir.Response);
                                             await Task.Delay(TimeSpan.FromSeconds(20));
+                                            DeleteDate(conta.conta.Username.ToLower());
                                             return;
                                         }
                                     }
@@ -561,6 +567,7 @@ namespace CliquedinSeguir
                                     {
                                         Console.WriteLine(stories.Response);
                                         await Task.Delay(TimeSpan.FromSeconds(20));
+                                        DeleteDate(conta.conta.Username.ToLower());
                                         return;
                                     }
                                 }
@@ -621,6 +628,7 @@ namespace CliquedinSeguir
                                     {
                                         Console.WriteLine(comentar.Response);
                                         await Task.Delay(TimeSpan.FromSeconds(20));
+                                        DeleteDate(conta.conta.Username.ToLower());
                                         return;
                                     }
                                 }
@@ -690,6 +698,23 @@ namespace CliquedinSeguir
             if (File.Exists($@"{dir}/Conta/{username}-claim.arka"))
                 File.Delete($@"{dir}/Conta/{username}-claim.arka");
             File.WriteAllText($@"{dir}/Conta/{username}-claim.arka", claim);
+        }
+
+        static void DeleteDate(string username)
+        {
+            string dir = Directory.GetCurrentDirectory();
+            try
+            {
+                if (!Directory.Exists($@"{dir}/Conta"))
+                    Directory.CreateDirectory($@"{dir}/Conta");
+            }
+            catch { }
+            if (File.Exists($@"{dir}/Conta/{username}.arka"))
+                File.Delete($@"{dir}/Conta/{username}.arka");
+            if (File.Exists($@"{dir}/Conta/{username}-ua.arka"))
+                File.Delete($@"{dir}/Conta/{username}-ua.arka");
+            if (File.Exists($@"{dir}/Conta/{username}-claim.arka"))
+                File.Delete($@"{dir}/Conta/{username}-claim.arka");
         }
 
         static bool HaveCookie(string username)
